@@ -1,0 +1,57 @@
+#!/usr/bin/env perl
+
+use warnings;
+use strict;
+
+use Email::Stuffer;
+use Net::SMTP;
+use Text::Lorem;
+use Sys::Hostname;
+
+my $lorem = Text::Lorem->new();
+
+# genmail [-f rcptfile] [-r rate [ -d duration] ] smtp.example.com:25 rcpt...
+#
+# -r: repeat, number of messages per minute (otherwise just send one)
+# -d: minutes to run for under -r (or indefinite)
+# -f: read recipients from rcptfile (one per line)
+#
+# recipients chosen randomly per-message from given list (either file or args)
+
+sub rand_in {
+    my ($min, $max) = @_;
+
+    # this might even accidentally work for leftward ranges?
+    return $min + int(rand(1 + $max - $min));
+}
+
+sub gen_from {
+    my ($lorem) = (@_);
+    my $name = $lorem->words(rand_in(1, 3));
+    my $user = $name;
+    $user =~ s/\s+/\./g;
+    my $domain = $lorem->words(rand_in(2,3));
+    $domain =~ s/\s+/\./g;
+    return qq{"$name" <$user\@$domain>};
+}
+
+sub gen_message_id {
+    my $left = join q{.}, time, $$, 'genmail';
+    my $right = hostname;
+    return qq{<$left\@$right>};
+}
+
+while(<>) {
+    my $to = 'test user <test.user@example.com>';
+    my $from = gen_from($lorem);
+    my $subject = $lorem->words(rand_in(3, 10));
+    my $message_id = gen_message_id();
+    my $body = $lorem->paragraphs(rand_in(1,10));
+
+    print Email::Stuffer->to($to)
+                        ->from($from)
+                        ->header('Message-Id' => $message_id)
+                        ->subject($subject)
+                        ->text_body($body)
+                        ->as_string();
+}
