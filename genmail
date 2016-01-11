@@ -3,6 +3,7 @@
 use warnings;
 use strict;
 
+use Data::Dumper;
 use Email::Stuffer;
 use Net::SMTP;
 use Text::Lorem;
@@ -41,17 +42,33 @@ sub gen_message_id {
     return qq{<$left\@$right>};
 }
 
-while(<>) {
-    my $to = 'test user <test.user@example.com>';
+my @rcpts = @ARGV;
+
+my $smtp = Net::SMTP->new('localhost');
+
+#while(1) {
+    my $to = $rcpts[rand @rcpts];
     my $from = gen_from($lorem);
     my $subject = $lorem->words(rand_in(3, 10));
     my $message_id = gen_message_id();
     my $body = $lorem->paragraphs(rand_in(1,10));
 
-    print Email::Stuffer->to($to)
-                        ->from($from)
-                        ->header('Message-Id' => $message_id)
-                        ->subject($subject)
-                        ->text_body($body)
-                        ->as_string();
-}
+    my $message = Email::Stuffer->to($to)
+                                ->from($from)
+                                ->header('Message-Id' => $message_id)
+                                ->subject($subject)
+                                ->text_body($body)
+                                ->as_string();
+
+    $smtp->mail('<>');  # FIXME use $from
+    if ($smtp->to($to)) {
+        $smtp->data($message);
+    }
+    else {
+        print STDERR "error: ", $smtp->message();
+    }
+
+#    sleep 1;
+#}
+
+$smtp->quit();
