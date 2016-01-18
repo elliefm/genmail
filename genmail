@@ -33,7 +33,7 @@ sub gen_from {
     $user =~ s/\s+/\./g;
     my $domain = $lorem->words(rand_in(2,3));
     $domain =~ s/\s+/\./g;
-    return qq{"$name" <$user\@$domain>};
+    return (qq{$user\@$domain}, qq{"$name" <$user\@$domain>});
 }
 
 sub gen_message_id {
@@ -48,19 +48,19 @@ my $smtp = Net::SMTP->new('localhost');
 
 #while(1) {
     my $to = $rcpts[rand @rcpts];
-    my $from = gen_from($lorem);
+    my ($from, $pretty_from) = gen_from($lorem);
     my $subject = $lorem->words(rand_in(3, 10));
     my $message_id = gen_message_id();
     my $body = $lorem->paragraphs(rand_in(1,10));
 
     my $message = Email::Stuffer->to($to)
-                                ->from($from)
+                                ->from($pretty_from)
                                 ->header('Message-Id' => $message_id)
                                 ->subject($subject)
                                 ->text_body($body)
                                 ->as_string();
 
-    $smtp->mail('<>');  # FIXME use $from
+    $smtp->mail($from);
     if ($smtp->to($to)) {
         $smtp->data($message);
     }
