@@ -5,8 +5,10 @@ use strict;
 
 use Data::Dumper;
 use Email::Stuffer;
+use Getopt::Std;
 use Net::SMTP;
 use Text::Lorem;
+use Time::HiRes qw(time sleep);  # floating seconds
 use Sys::Hostname;
 
 my $lorem = Text::Lorem->new();
@@ -42,14 +44,29 @@ sub gen_message_id {
     return qq{<$left\@$right>};
 }
 
-my @rcpts = @ARGV;
+my %opts;
+my @rcpts;
+
+getopts('d:f:r:', \%opts);
+
+if ($opts{f}) {
+    open my $fh, '<', $opts{f} or die "open $opts{f}: $!\n";
+    chomp(@rcpts = <$fh>);
+    close $fh;
+}
+else {
+    @rcpts = @ARGV;
+}
+
+die "no recipients\n" if not scalar @rcpts;
 
 my $smtp = Net::SMTP->new('localhost');
+my $start = time;
 
-#while(1) {
+while (1) {
     my $to = $rcpts[rand @rcpts];
     my ($from, $pretty_from) = gen_from($lorem);
-    my $subject = $lorem->words(rand_in(3, 10));
+    my $subject = $lorem->words(rand_in(2, 7));
     my $message_id = gen_message_id();
     my $body = $lorem->paragraphs(rand_in(1,10));
 
@@ -68,7 +85,10 @@ my $smtp = Net::SMTP->new('localhost');
         print STDERR "error: ", $smtp->message();
     }
 
-#    sleep 1;
-#}
+    last if not $opts{r};
+    last if $opts{d} && (time - $start) / 60.0 >= $opts{d};
 
+    sleep 60.0 / $opts{r};
+
+}
 $smtp->quit();
