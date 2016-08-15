@@ -13,7 +13,7 @@ use Sys::Hostname;
 
 my $lorem = Text::Lorem->new();
 
-# genmail [-f rcptfile] [-r rate [ -d duration] ] smtp.example.com:25 rcpt...
+# genmail [-f rcptfile] [-r rate [ -d duration] ] rcpt...
 #
 # -r: repeat, number of messages per minute (otherwise just send one)
 # -d: minutes to run for under -r (or indefinite)
